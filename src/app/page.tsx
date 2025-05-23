@@ -1,4 +1,5 @@
 import URLShortener from '@/components/URLShortener'
+import Analytics from '@/components/Analytics'
 
 export default function Home() {
   return (
@@ -13,6 +14,7 @@ export default function Home() {
           </p>
         </div>
         <URLShortener />
+        <Analytics />
       </div>
     </main>
   )
