@@ -13,6 +13,7 @@ interface ShortenedURL {
 
 export default function URLShortener() {
   const [url, setUrl] = useState('')
+  const [customCode, setCustomCode] = useState('')
   const [shortenedUrls, setShortenedUrls] = useState<ShortenedURL[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -48,7 +49,7 @@ export default function URLShortener() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, customCode: customCode.trim() }),
       })
 
       if (!response.ok) {
@@ -58,6 +59,7 @@ export default function URLShortener() {
       const data = await response.json()
       setShortenedUrls(prev => [data, ...prev])
       setUrl('')
+      setCustomCode('')
     } catch (err) {
       setError('Failed to shorten URL. Please try again.')
     } finally {
@@ -90,6 +92,23 @@ export default function URLShortener() {
               placeholder="https://example.com/very-long-url"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
             />
+          </div>
+          
+          <div>
+            <label htmlFor="customCode" className="block text-sm font-medium text-gray-700 mb-2">
+              Custom short code (optional)
+            </label>
+            <input
+              type="text"
+              id="customCode"
+              value={customCode}
+              onChange={(e) => setCustomCode(e.target.value)}
+              placeholder="my-custom-link"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Leave empty for auto-generated code
+            </p>
           </div>
           
           {error && (
