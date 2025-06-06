@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { nanoid } from 'nanoid'
+import QRCodeGenerator from './QRCodeGenerator'
 
 interface ShortenedURL {
   id: string
@@ -152,10 +153,11 @@ export default function URLShortener() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center justify-between text-sm text-gray-500">
+                <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
                   <span>Created: {new Date(item.createdAt).toLocaleDateString()}</span>
                   <span>Clicks: {item.clicks}</span>
                 </div>
+                <QRCodeGenerator url={`${window.location.origin}/${item.shortCode}`} />
               </div>
             ))}
           </div>
