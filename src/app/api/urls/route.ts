@@ -3,10 +3,7 @@ import dbConnect from '@/lib/mongodb'
 import { URL as URLModel } from '@/lib/models'
 import { getTokenFromRequest, verifyToken } from '@/lib/auth'
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { shortCode: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
     // Check authentication
     const token = getTokenFromRequest(request)
@@ -19,26 +16,15 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    const { shortCode } = await params
     await dbConnect()
 
-    const urlRecord = await URLModel.findOne({ 
-      shortCode, 
-      userId: payload.userId // Only allow users to see their own URLs
-    })
+    const urls = await URLModel.find({ userId: payload.userId })
+      .sort({ createdAt: -1 })
+      .select('shortCode originalUrl clicks createdAt')
 
-    if (!urlRecord) {
-      return NextResponse.json({ error: 'URL not found' }, { status: 404 })
-    }
-
-    return NextResponse.json({
-      shortCode: urlRecord.shortCode,
-      originalUrl: urlRecord.originalUrl,
-      clicks: urlRecord.clicks,
-      createdAt: urlRecord.createdAt
-    })
+    return NextResponse.json(urls)
   } catch (error) {
-    console.error('Error fetching analytics:', error)
+    console.error('Error fetching user URLs:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

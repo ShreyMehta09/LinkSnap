@@ -1,9 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { nanoid } from 'nanoid'
-import { getDatabase } from '@/lib/database'
+import dbConnect from '@/lib/mongodb'
+import { URL as URLModel } from '@/lib/models'
+import { getTokenFromRequest, verifyToken } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication
+    const token = getTokenFromRequest(request)
+    if (!token) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    const payload = verifyToken(token)
+    if (!payload) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    }
+
     const { url, customCode } = await request.json()
 
     if (!url) {
@@ -17,14 +30,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid URL' }, { status: 400 })
     }
 
-    const db = getDatabase()
+    await dbConnect()
     let shortCode = customCode
 
     // If custom code is provided, check if it's already taken
     if (customCode) {
-      const existing = db.prepare(`
-        SELECT short_code FROM urls WHERE short_code = ?
-      `).get(customCode)
+      const existing = await URLModel.findOne({ shortCode: customCode })
       
       if (existing) {
         return NextResponse.json({ error: 'Custom code already taken' }, { status: 400 })
@@ -35,19 +46,26 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Custom code can only contain letters, numbers, hyphens, and underscores' }, { status: 400 })
       }
     } else {
-      shortCode = nanoid(8)
+      // Generate unique short code
+      do {
+        shortCode = nanoid(8)
+      } while (await URLModel.findOne({ shortCode }))
     }
     
-    const result = db.prepare(`
-      INSERT INTO urls (id, original_url, short_code, created_at, clicks)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(nanoid(), url, shortCode, new Date().toISOString(), 0)
-
-    const shortenedUrl = {
-      id: result.lastInsertRowid,
+    // Create new URL record
+    const urlRecord = new URLModel({
       originalUrl: url,
       shortCode,
-      createdAt: new Date().toISOString(),
+      userId: payload.userId,
+    })
+
+    await urlRecord.save()
+
+    const shortenedUrl = {
+      id: urlRecord._id,
+      originalUrl: url,
+      shortCode,
+      createdAt: urlRecord.createdAt,
       clicks: 0
     }
 
