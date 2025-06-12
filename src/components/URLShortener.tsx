@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { nanoid } from 'nanoid'
 import QRCodeGenerator from './QRCodeGenerator'
+import { useToast } from '@/contexts/ToastContext'
 
 interface ShortenedURL {
   id: string
@@ -18,6 +19,7 @@ export default function URLShortener() {
   const [shortenedUrls, setShortenedUrls] = useState<ShortenedURL[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const { success, error: showError } = useToast()
 
   const isValidUrl = (string: string) => {
     try {
@@ -61,8 +63,11 @@ export default function URLShortener() {
       setShortenedUrls(prev => [data, ...prev])
       setUrl('')
       setCustomCode('')
+      success('URL shortened successfully!')
     } catch (err) {
-      setError('Failed to shorten URL. Please try again.')
+      const errorMsg = 'Failed to shorten URL. Please try again.'
+      setError(errorMsg)
+      showError(errorMsg)
     } finally {
       setIsLoading(false)
     }
@@ -71,9 +76,10 @@ export default function URLShortener() {
   const copyToClipboard = async (shortUrl: string) => {
     try {
       await navigator.clipboard.writeText(shortUrl)
-      // You could add a toast notification here
+      success('Copied to clipboard!')
     } catch (err) {
       console.error('Failed to copy to clipboard:', err)
+      showError('Failed to copy to clipboard')
     }
   }
 
